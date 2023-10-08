@@ -126,36 +126,35 @@ hypertention
 # Now Let's compare it to all other drugs by calculation of ICER between them
 
 # Load the necessary libraries
-library(dplyr)
 library(openxlsx)
 
-# Find the drug with the highest satisfaction
-highest_satisfaction_drug <- hypertention %>%
-  filter(Satisfaction == max(Satisfaction)) %>%
-  filter(Effective == max(Effective)) %>%
-  select(Drug) %>%
-  pull()
-highest_satisfaction_drug
-
-# Calculate ICER between "Verapamil" and all drugs
+# Find the drug with the highest satisfaction and effectiveness
+max_satisfaction_effectiveness <- max(hypertention$Satisfaction)
 verapamil_data <- hypertention %>%
-  filter(Drug == highest_satisfaction_drug) %>%
+  filter(Drug == "Verapamil", Satisfaction == max_satisfaction_effectiveness, Effective == 5)
+
 # Initialize an empty vector to store ICER values
-icer_values <- c()
-# Now iteration over rows:
-for (drug in hypertention$Drug) {
-  drug_data <- hypertention %>%
-    filter(Drug == drug)  # Data for the current drug
-# Calculate incremental cost and effectiveness between "Verapamil" and the current drug
-  incremental_cost <- sum(drug_data$Cost) - sum(verapamil_data$Cost)
-  incremental_effectiveness <- sum(drug_data$Effective) - sum(verapamil_data$Effective)
+icer_values <- numeric()
+
+# Iterate over rows
+for (i in 1:nrow(hypertention)) {
+  current_row <- hypertention[i, ]
+  
+  # Calculate incremental cost and effectiveness between "Verapamil" and the current drug
+  verapamil_effectiveness <- verapamil_data$Effective
+  incremental_cost <- sum(current_row$Price) - sum(verapamil_data$Price)
+  incremental_effectiveness <- sum(current_row$Effective) - sum(verapamil_data$Effective)
+  
+  # Calculate ICER
   icer <- incremental_cost / incremental_effectiveness
+  
+  # Append the ICER value to the vector
   icer_values <- c(icer_values, icer)
 }
 
-# Add a new column "ICER to Verapamil" to the dataset
-hypertention <- hypertention %>%
-  mutate(`ICER to Verapamil` = icer_values)
+# Add a new column "ICER to Verapamil" to the dataset and sort it
+hypertention$`ICER to Verapamil` <- icer_values
 
-# Saving as an Excel file
-write.xlsx(hypertention, "hypertention ICER list.xlsx")
+# Save the updated dataset as an Excel file
+write.xlsx(hypertention, "hypertention_with_ICER.xlsx")
+
